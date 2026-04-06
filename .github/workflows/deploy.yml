@@ -1,0 +1,175 @@
+name: Build & Deploy (Minify)
+
+# ──────────────────────────────────────────────
+# 觸發條件：push 到 main branch 或手動執行
+# ──────────────────────────────────────────────
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# GitHub Pages 所需的寫入權限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時只能有一個部署在跑，新的會取消舊的
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  # ════════════════════════════════════════════
+  # JOB 1 — 壓縮並打包到 dist/
+  # ════════════════════════════════════════════
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 取得原始碼
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # 2. 安裝 Node.js（壓縮工具需要）
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 3. 安裝壓縮工具
+      #    terser          → JS uglify (支援 ES modules)
+      #    html-minifier-terser → HTML minify
+      #    clean-css-cli   → CSS minify
+      - name: Install minification tools
+        run: npm install -g terser html-minifier-terser clean-css-cli
+
+      # 4. 建立 dist/ 目錄結構，複製不需壓縮的靜態資源
+      - name: Prepare dist structure
+        run: |
+          mkdir -p dist/css
+          mkdir -p dist/js/modules
+          mkdir -p dist/js/components
+          mkdir -p dist/js/pages
+          # 圖示與第三方函式庫直接複製（已最小化或二進位檔案）
+          cp -r icons  dist/icons
+          cp -r vendor dist/vendor
+          cp manifest.json dist/manifest.json
+
+      # 5. 壓縮 HTML
+      - name: Minify HTML
+        run: |
+          html-minifier-terser index.html \
+            --collapse-whitespace \
+            --remove-comments \
+            --remove-redundant-attributes \
+            --remove-script-type-attributes \
+            --use-short-doctype \
+            --minify-css true \
+            --output dist/index.html
+
+      # 6. 壓縮 CSS
+      - name: Minify CSS
+        run: |
+          for f in css/*.css; do
+            filename=$(basename "$f")
+            cleancss \
+              --level 2 \
+              -o "dist/css/${filename}" \
+              "$f"
+            echo "  ✔ Minified $f"
+          done
+
+      # 7. 壓縮 JS（ES module 模式，保留 import/export）
+      - name: Minify JS modules
+        run: |
+          TERSER_OPTS="--compress passes=2,drop_console=true,pure_getters=true \
+                       --mangle \
+                       --ecma 2020 \
+                       --module"
+
+          # 根目錄 js 檔（app.js、router.js）
+          for f in js/*.js; do
+            filename=$(basename "$f")
+            eval terser "$f" $TERSER_OPTS -o "dist/js/${filename}"
+            echo "  ✔ Uglified $f"
+          done
+
+          # modules/
+          for f in js/modules/*.js; do
+            filename=$(basename "$f")
+            eval terser "$f" $TERSER_OPTS -o "dist/js/modules/${filename}"
+            echo "  ✔ Uglified $f"
+          done
+
+          # components/
+          for f in js/components/*.js; do
+            filename=$(basename "$f")
+            eval terser "$f" $TERSER_OPTS -o "dist/js/components/${filename}"
+            echo "  ✔ Uglified $f"
+          done
+
+          # pages/
+          for f in js/pages/*.js; do
+            filename=$(basename "$f")
+            eval terser "$f" $TERSER_OPTS -o "dist/js/pages/${filename}"
+            echo "  ✔ Uglified $f"
+          done
+
+      # 8. 壓縮 Service Worker（非 module，不加 --module flag）
+      - name: Minify & version Service Worker
+        run: |
+          # 用短 commit hash 當作 cache 版本，確保部署後舊快取失效
+          BUILD_HASH="${{ github.sha }}"
+          BUILD_HASH="${BUILD_HASH:0:8}"
+
+          terser sw.js \
+            --compress passes=2,drop_console=true \
+            --mangle \
+            --ecma 2020 \
+            -o dist/sw.js
+
+          # 替換 cache 版本字串（e.g. babyrecord-v1 → babyrecord-a1b2c3d4）
+          sed -i "s/babyrecord-v[^'\"&]*/babyrecord-${BUILD_HASH}/g" dist/sw.js
+          echo "  ✔ SW cache version → babyrecord-${BUILD_HASH}"
+
+      # 9. 顯示壓縮前後大小比較
+      - name: Print size comparison
+        run: |
+          echo "══════════════════════════════════════"
+          echo "  File size comparison (bytes)"
+          echo "══════════════════════════════════════"
+          printf "%-45s %8s  %8s\n" "File" "Before" "After"
+          echo "──────────────────────────────────────────────────────────"
+          for src in index.html css/*.css js/*.js js/modules/*.js js/components/*.js js/pages/*.js sw.js; do
+            rel="${src}"
+            dst="dist/${src}"
+            if [ -f "$src" ] && [ -f "$dst" ]; then
+              before=$(wc -c < "$src")
+              after=$(wc -c < "$dst")
+              printf "%-45s %8d  %8d\n" "$rel" "$before" "$after"
+            fi
+          done
+          echo "══════════════════════════════════════"
+
+      # 10. 上傳 dist/ 給 GitHub Pages action
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/
+
+  # ════════════════════════════════════════════
+  # JOB 2 — 部署到 GitHub Pages
+  # ════════════════════════════════════════════
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
