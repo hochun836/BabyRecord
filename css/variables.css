@@ -1,0 +1,72 @@
+/* ===== BabyRecord Design Tokens ===== */
+:root {
+  /* --- Colors --- */
+  --primary: #43A047;
+  --primary-light: #E8F5E9;
+  --primary-lighter: #C8E6C9;
+  --primary-dark: #2E7D32;
+  --accent: #66BB6A;
+  --accent-warm: #FFAB91;
+
+  --bg: #F5F9F5;
+  --surface: #FFFFFF;
+  --surface-hover: #F1F8F1;
+  --border: #C8E6C9;
+  --border-light: #E0E0E0;
+
+  --text-primary: #1B2E1B;
+  --text-secondary: #5F6B5F;
+  --text-hint: #9E9E9E;
+  --text-on-primary: #FFFFFF;
+
+  --danger: #E53935;
+  --danger-light: #FFEBEE;
+  --warning: #FB8C00;
+  --warning-light: #FFF3E0;
+  --info: #1E88E5;
+  --info-light: #E3F2FD;
+
+  /* --- Typography --- */
+  --font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  --font-size-sm: 14px;
+  --font-size-base: 18px;
+  --font-size-lg: 22px;
+  --font-size-xl: 28px;
+  --font-size-2xl: 36px;
+  --font-size-3xl: 48px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  --line-height: 1.6;
+
+  /* --- Spacing --- */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* --- Shape --- */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+
+  /* --- Elevation --- */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  /* --- Layout --- */
+  --nav-height: 72px;
+  --header-height: 64px;
+  --max-width: 480px;
+  --touch-target: 64px;
+
+  /* --- Transitions --- */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+}
