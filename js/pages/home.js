@@ -3,9 +3,12 @@
  */
 import { icon } from '../components/icons.js';
 import { renderBabySelector, getSelectedBaby, onBabyChange } from '../components/babySelector.js';
-import { getRecordsByDate, getLastRecordByType, RECORD_TYPES } from '../modules/records.js';
+import { getRecordsByDate, getRecordsByDateRange, getLastRecordByType, RECORD_TYPES } from '../modules/records.js';
 import { getNextReminder } from '../modules/reminder.js';
 import { navigate } from '../router.js';
+import { showRecordDetail } from '../components/recordDetail.js';
+
+let _recordsMap = {};
 
 function toDateStr(d) {
   return d.getFullYear() + '-' +
@@ -47,7 +50,7 @@ export async function renderHome() {
       <div id="home-status"></div>
       <div class="section-title" style="margin-top: var(--space-lg);">快速新增</div>
       <div id="home-quickadd"></div>
-      <div class="section-title" style="margin-top: var(--space-lg);">今日作息</div>
+      <div class="section-title" style="margin-top: var(--space-lg);">最近 12 小時</div>
       <div id="home-timeline"></div>
     </div>
   `;
@@ -76,7 +79,7 @@ async function renderHomeContent() {
     renderReminderBanner(),
     renderStatusCards(baby),
     renderQuickAdd(),
-    renderTodayTimeline(baby),
+    renderRecentTimeline(baby),
   ]);
 }
 
@@ -105,11 +108,12 @@ async function renderStatusCards(baby) {
   const container = document.getElementById('home-status');
   if (!container) return;
 
-  const [lastFeeding, lastDiaper, lastTemp, lastSleep] = await Promise.all([
+  const [lastFeeding, lastDiaper, lastTemp, lastSleep, lastFood] = await Promise.all([
     getLastRecordByType(baby.id, 'feeding'),
     getLastRecordByType(baby.id, 'diaper'),
     getLastRecordByType(baby.id, 'temperature'),
     getLastRecordByType(baby.id, 'sleep'),
+    getLastRecordByType(baby.id, 'food'),
   ]);
 
   const cards = [];
@@ -162,6 +166,18 @@ async function renderStatusCards(baby) {
     `);
   }
 
+  // Food card
+  if (lastFood) {
+    const foodName = lastFood.value.name || '副食品';
+    cards.push(`
+      <div class="status-card">
+        <div class="status-card__header">${icon('food')}<span>上次副食品</span></div>
+        <div class="status-card__value" style="font-size: var(--font-size-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(foodName)}</div>
+        <div class="status-card__time">${timeAgo(lastFood.time)}</div>
+      </div>
+    `);
+  }
+
   if (cards.length === 0) {
     container.innerHTML = `
       <div class="card" style="text-align: center; color: var(--text-hint); padding: var(--space-xl);">
@@ -206,30 +222,44 @@ function renderQuickAdd() {
   });
 }
 
-async function renderTodayTimeline(baby) {
+async function renderRecentTimeline(baby) {
   const container = document.getElementById('home-timeline');
   if (!container) return;
 
-  const today = toDateStr(new Date());
-  const records = await getRecordsByDate(baby.id, today);
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+  const today = toDateStr(now);
+  const yesterday = toDateStr(cutoff);
 
-  if (records.length === 0) {
+  let records;
+  if (today === yesterday) {
+    records = await getRecordsByDate(baby.id, today);
+  } else {
+    records = await getRecordsByDateRange(baby.id, yesterday, today);
+  }
+
+  const recent = records.filter(r => new Date(r.time) >= cutoff);
+
+  if (recent.length === 0) {
     container.innerHTML = `
       <div style="text-align: center; padding: var(--space-lg); color: var(--text-hint);">
-        今天還沒有紀錄
+        最近 12 小時沒有紀錄
       </div>
     `;
     return;
   }
 
-  // Group by HH:MM
+  // Store records for detail modal
+  _recordsMap = {};
+  recent.forEach(r => { _recordsMap[r.id] = r; });
+
+  // Group by HH:MM (ascending)
   const groups = {};
-  for (const r of records) {
+  for (const r of recent) {
     const key = formatTime(r.time);
     if (!groups[key]) groups[key] = [];
     groups[key].push(r);
   }
-
   const sortedKeys = Object.keys(groups).sort();
 
   container.innerHTML = `
@@ -245,6 +275,14 @@ async function renderTodayTimeline(baby) {
       `).join('')}
     </div>
   `;
+
+  // Tap to show detail
+  container.querySelectorAll('.timeline-item[data-id]').forEach(item => {
+    item.addEventListener('click', () => {
+      const r = _recordsMap[item.dataset.id];
+      if (r) showRecordDetail(r);
+    });
+  });
 }
 
 function renderTimelineItem(record) {
@@ -292,12 +330,16 @@ function renderTimelineItem(record) {
   }
 
   return `
-    <div class="timeline-item">
+    <div class="timeline-item" data-id="${record.id}"
+         style="cursor: pointer; transition: background var(--duration-fast);"
+         role="button" tabindex="0" aria-label="${typeName} 詳情">
       <div class="timeline-item__icon">${icon(record.type)}</div>
       <div class="timeline-item__content">
         <div class="timeline-item__type">${typeName}</div>
         <div class="timeline-item__value">${valueText}</div>
+        ${record.note ? `<div style="font-size:var(--font-size-sm);color:var(--text-hint);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(record.note)}</div>` : ''}
       </div>
+      <span style="display:flex;align-items:center;width:18px;height:18px;color:var(--text-hint);flex-shrink:0;">${icon('chevronRight')}</span>
     </div>
   `;
 }

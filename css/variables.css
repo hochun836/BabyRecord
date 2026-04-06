@@ -71,7 +71,6 @@
   --duration-slow: 400ms;
 }
 
-/* === Theme: 白底綠色系 (default — no override needed) === */
 /* === Theme: 黑底綠色系 === */
 [data-theme="dark-green"] {
   color-scheme: dark;

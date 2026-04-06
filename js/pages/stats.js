@@ -58,7 +58,7 @@ export async function renderStats() {
           <button class="btn btn-sm btn-secondary flex-1" data-range="30">30 天</button>
         </div>
       </div>
-      <div class="card" style="position:relative; min-height: 300px;">
+      <div class="card" id="stats-chart-container" style="position:relative; min-height: 300px;">
         <canvas id="stats-chart"></canvas>
       </div>
       <div id="stats-summary" class="mt-lg"></div>
@@ -116,12 +116,15 @@ async function refreshChart() {
     chartInstance = null;
   }
 
+  // Always restore a fresh canvas (prevents tab-switch bug after empty-state replaces canvas)
+  const chartContainer = document.getElementById('stats-chart-container');
+  if (!chartContainer) return;
+  chartContainer.innerHTML = '<canvas id="stats-chart"></canvas>';
   const canvas = document.getElementById('stats-chart');
-  if (!canvas) return;
 
   const Chart = window.Chart;
   if (!Chart) {
-    canvas.parentElement.innerHTML = '<p style="text-align:center;color:var(--text-hint);padding:var(--space-xl);">Chart.js 載入失敗</p>';
+    chartContainer.innerHTML = '<p style="text-align:center;color:var(--text-hint);padding:var(--space-xl);">Chart.js 載入失敗</p>';
     return;
   }
 
@@ -130,7 +133,7 @@ async function refreshChart() {
       renderFeedingChart(Chart, canvas, records, days);
       break;
     case 'growth':
-      renderGrowthChart(Chart, canvas, records, days);
+      renderGrowthChart(Chart, canvas, chartContainer, records, days);
       break;
     case 'diaper':
       renderDiaperChart(Chart, canvas, records, days);
@@ -212,7 +215,7 @@ function renderFeedingChart(Chart, canvas, records, days) {
   }
 }
 
-function renderGrowthChart(Chart, canvas, records, days) {
+function renderGrowthChart(Chart, canvas, container, records, days) {
   const weightRecords = records.filter(r => r.type === 'weight').sort((a, b) => new Date(a.time) - new Date(b.time));
   const heightRecords = records.filter(r => r.type === 'height').sort((a, b) => new Date(a.time) - new Date(b.time));
 
@@ -256,7 +259,7 @@ function renderGrowthChart(Chart, canvas, records, days) {
   }
 
   if (datasets.length === 0) {
-    canvas.parentElement.innerHTML = '<p style="text-align:center;color:var(--text-hint);padding:var(--space-xl);">此期間沒有體重/身長紀錄</p>';
+    container.innerHTML = '<p style="text-align:center;color:var(--text-hint);padding:var(--space-xl);">此期間沒有體重/身長紀錄</p>';
     document.getElementById('stats-summary').innerHTML = '';
     return;
   }

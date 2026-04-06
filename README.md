@@ -36,7 +36,7 @@
 5. 在「已授權的 JavaScript 來源」加入：
    - `http://localhost:你的PORT`（開發用）
    - 正式網域（上線用）
-6. 複製 Client ID → 在 App 的「設定 → 資料備份」頁貼入
+6. 複製 Client ID → 在 App 的「設定 → 資料 → 備份」頁貼入
 
 ## 授權
 

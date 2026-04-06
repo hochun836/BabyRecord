@@ -7,6 +7,9 @@ import { getRecordsByDate, getRecordDatesInMonth, deleteRecord, RECORD_TYPES } f
 import { confirm as confirmDialog } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { navigate } from '../router.js';
+import { showRecordDetail } from '../components/recordDetail.js';
+
+let _historyRecordsMap = {};
 
 let currentYear, currentMonth, selectedDate;
 
@@ -154,6 +157,10 @@ async function renderDayTimeline() {
     return;
   }
 
+  // Build records map for detail modal
+  _historyRecordsMap = {};
+  records.forEach(r => { _historyRecordsMap[r.id] = r; });
+
   // Group by HH:MM
   const groups = {};
   for (const r of records) {
@@ -192,6 +199,15 @@ async function renderDayTimeline() {
       await deleteRecord(btn.dataset.id);
       showToast('已刪除');
       renderDayTimeline();
+    });
+  });
+
+  // Tap item body to show detail
+  container.querySelectorAll('.timeline-item[data-id]').forEach(item => {
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('[data-action]')) return; // ignore edit/delete tap
+      const r = _historyRecordsMap[item.dataset.id];
+      if (r) showRecordDetail(r);
     });
   });
 }
@@ -241,12 +257,12 @@ function renderTimelineItem(record) {
   }
 
   return `
-    <div class="timeline-item">
+    <div class="timeline-item" data-id="${record.id}" style="cursor:pointer;">
       <div class="timeline-item__icon">${icon(record.type)}</div>
       <div class="timeline-item__content">
         <div class="timeline-item__type">${typeName}</div>
         <div class="timeline-item__value">${valueText}</div>
-        ${record.note ? `<div style="font-size: var(--font-size-sm); color: var(--text-hint); margin-top: 2px;">${escapeHtml(record.note)}</div>` : ''}
+        ${record.note ? `<div style="font-size: var(--font-size-sm); color: var(--text-hint); margin-top: 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(record.note)}</div>` : ''}
       </div>
       <div class="timeline-item__actions">
         <button data-action="edit" data-id="${record.id}" title="編輯">${icon('edit')}</button>

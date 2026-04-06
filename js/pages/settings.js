@@ -24,9 +24,9 @@ export async function renderSettings() {
     </div>
     <div class="page-content">
       <div class="tabs" id="settings-tabs">
-        <button class="tab-btn active" data-tab="babies">寶寶管理</button>
-        <button class="tab-btn" data-tab="reminders">提醒設定</button>
-        <button class="tab-btn" data-tab="backup">資料備份</button>
+        <button class="tab-btn active" data-tab="babies">寶寶</button>
+        <button class="tab-btn" data-tab="reminders">提醒</button>
+        <button class="tab-btn" data-tab="backup">資料</button>
         <button class="tab-btn" data-tab="appearance">外觀</button>
       </div>
       <div id="settings-content"></div>

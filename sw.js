@@ -25,6 +25,7 @@ const STATIC_ASSETS = [
   './js/components/babySelector.js',
   './js/components/modal.js',
   './js/components/toast.js',
+  './js/components/recordDetail.js',
   './js/pages/home.js',
   './js/pages/add.js',
   './js/pages/history.js',
