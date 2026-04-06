@@ -64,7 +64,7 @@ export async function renderBabySelector(container) {
           : ''
         }
       </div>
-      ${babies.length > 1 ? icon('chevronDown') : ''}
+      ${babies.length > 1 ? `<span style="display:flex;align-items:center;width:24px;height:24px;flex-shrink:0;">${icon('chevronDown')}</span>` : ''}
     </button>
     ${babies.length > 1 ? `
       <div class="baby-dropdown hidden" style="position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); z-index: 150; margin-top: var(--space-xs);">

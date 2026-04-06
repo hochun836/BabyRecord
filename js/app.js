@@ -6,6 +6,7 @@ import { route, initRouter, navigate } from './router.js';
 import { openDB } from './modules/db.js';
 import { getAllBabies, getSelectedBabyId, setSelectedBabyId } from './modules/baby.js';
 import { checkOverdueReminders, scheduleForegroundReminders } from './modules/reminder.js';
+import { initTheme } from './modules/theme.js';
 import { renderNav } from './components/nav.js';
 import { renderHome } from './pages/home.js';
 import { renderAdd } from './pages/add.js';
@@ -14,6 +15,9 @@ import { renderStats, cleanupStats } from './pages/stats.js';
 import { renderSettings } from './pages/settings.js';
 
 async function init() {
+  // 0. Apply saved color theme immediately (before any render)
+  initTheme();
+
   // 1. Open IndexedDB
   await openDB();
 

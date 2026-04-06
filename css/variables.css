@@ -70,3 +70,95 @@
   --duration-normal: 250ms;
   --duration-slow: 400ms;
 }
+
+/* === Theme: 白底綠色系 (default — no override needed) === */
+/* === Theme: 黑底綠色系 === */
+[data-theme="dark-green"] {
+  color-scheme: dark;
+  --primary: #66BB6A;
+  --primary-light: #1B3A1C;
+  --primary-lighter: #2E5530;
+  --primary-dark: #A5D6A7;
+  --accent: #81C784;
+
+  --bg: #121212;
+  --surface: #1E1E1E;
+  --surface-hover: #2A2A2A;
+  --border: #2E5530;
+  --border-light: #2C2C2C;
+
+  --text-primary: #F0F0F0;
+  --text-secondary: #AAAAAA;
+  --text-hint: #666666;
+  --text-on-primary: #FFFFFF;
+
+  --danger: #EF5350;
+  --danger-light: #3B1212;
+  --warning: #FFA726;
+  --warning-light: #3B2800;
+  --info: #42A5F5;
+  --info-light: #0D2137;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.6);
+}
+
+/* === Theme: 白底藍色系 === */
+[data-theme="light-blue"] {
+  --primary: #1E88E5;
+  --primary-light: #E3F2FD;
+  --primary-lighter: #BBDEFB;
+  --primary-dark: #1565C0;
+  --accent: #42A5F5;
+
+  --bg: #F5F8FF;
+  --surface: #FFFFFF;
+  --surface-hover: #EEF4FF;
+  --border: #BBDEFB;
+  --border-light: #E0E0E0;
+
+  --text-primary: #0D1B2E;
+  --text-secondary: #3D5A7A;
+  --text-hint: #9E9E9E;
+  --text-on-primary: #FFFFFF;
+
+  --danger: #E53935;
+  --danger-light: #FFEBEE;
+  --warning: #FB8C00;
+  --warning-light: #FFF3E0;
+  --info: #1E88E5;
+  --info-light: #E3F2FD;
+}
+
+/* === Theme: 黑底藍色系 === */
+[data-theme="dark-blue"] {
+  color-scheme: dark;
+  --primary: #42A5F5;
+  --primary-light: #0D2137;
+  --primary-lighter: #163352;
+  --primary-dark: #90CAF9;
+  --accent: #64B5F6;
+
+  --bg: #0A0F1A;
+  --surface: #111827;
+  --surface-hover: #1C2A3F;
+  --border: #163352;
+  --border-light: #1C2A3F;
+
+  --text-primary: #E8F0FE;
+  --text-secondary: #93A8C4;
+  --text-hint: #5A6F88;
+  --text-on-primary: #FFFFFF;
+
+  --danger: #EF5350;
+  --danger-light: #3B1212;
+  --warning: #FFA726;
+  --warning-light: #3B2800;
+  --info: #64B5F6;
+  --info-light: #0D2137;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.6);
+}

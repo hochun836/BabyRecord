@@ -54,7 +54,7 @@ const icons = {
   arrowLeft: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`,
 
   // --- Misc ---
-  baby: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="10" cy="7.5" r="0.5" fill="currentColor"/><circle cx="14" cy="7.5" r="0.5" fill="currentColor"/><path d="M10 10c.8.6 1.5.8 2 .8s1.2-.2 2-.8"/></svg>`,
+  baby: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="14" fill="currentColor" opacity="0.15"/><circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="2"/><circle cx="11.5" cy="14.5" r="2.2" fill="currentColor"/><circle cx="20.5" cy="14.5" r="2.2" fill="currentColor"/><path d="M11.5 20.5 Q16 24 20.5 20.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="9" cy="19" r="2.8" fill="currentColor" opacity="0.18"/><circle cx="23" cy="19" r="2.8" fill="currentColor" opacity="0.18"/><path d="M11 4.5 Q13.5 1.5 16 3.5 Q18.5 1.5 21 4.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>`,
 
   bell: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
 

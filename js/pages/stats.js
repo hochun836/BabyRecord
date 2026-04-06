@@ -44,11 +44,13 @@ export async function renderStats() {
         <button class="tab-btn" data-tab="sleep">睡眠</button>
       </div>
       <div class="card mb-lg">
-        <div class="flex items-center gap-md mb-md">
-          <label class="form-label" style="margin:0; white-space:nowrap;">日期範圍</label>
-          <input type="date" class="form-input" id="stats-start" value="${toDateStr(startDate)}" style="font-size: var(--font-size-sm);">
-          <span>~</span>
-          <input type="date" class="form-input" id="stats-end" value="${toDateStr(endDate)}" style="font-size: var(--font-size-sm);">
+        <div style="margin-bottom: var(--space-md);">
+          <label class="form-label" style="margin-bottom: var(--space-sm);">日期範圍</label>
+          <div style="display:flex; align-items:center; gap:var(--space-sm);">
+            <input type="date" class="form-input" id="stats-start" value="${toDateStr(startDate)}" style="flex:1; min-width:0; font-size:13px; min-height:44px; padding:8px;">
+            <span style="flex-shrink:0; color:var(--text-secondary);">～</span>
+            <input type="date" class="form-input" id="stats-end" value="${toDateStr(endDate)}" style="flex:1; min-width:0; font-size:13px; min-height:44px; padding:8px;">
+          </div>
         </div>
         <div class="flex gap-sm">
           <button class="btn btn-sm btn-secondary flex-1" data-range="7">7 天</button>

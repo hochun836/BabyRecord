@@ -19,6 +19,7 @@ const STATIC_ASSETS = [
   './js/modules/records.js',
   './js/modules/reminder.js',
   './js/modules/gdrive.js',
+  './js/modules/theme.js',
   './js/components/icons.js',
   './js/components/nav.js',
   './js/components/babySelector.js',

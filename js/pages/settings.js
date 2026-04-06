@@ -1,5 +1,5 @@
 /**
- * settings.js — Settings page: babies | reminders | backup tabs.
+ * settings.js — Settings page: babies | reminders | backup | appearance tabs.
  */
 import { icon } from '../components/icons.js';
 import { getAllBabies, createBaby, updateBaby, deleteBaby, getSelectedBabyId, setSelectedBabyId } from '../modules/baby.js';
@@ -7,6 +7,7 @@ import { getAllReminders, getRemindersByBaby, createReminder, updateReminder, de
 import { openModal, closeModal, modalHeader, confirm as confirmDialog } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { getClientId, setClientId, exportToGDrive, importFromGDrive, restoreBackup } from '../modules/gdrive.js';
+import { getTheme, setTheme, THEMES } from '../modules/theme.js';
 
 function escapeHtml(str) {
   const div = document.createElement('div');
@@ -26,6 +27,7 @@ export async function renderSettings() {
         <button class="tab-btn active" data-tab="babies">寶寶管理</button>
         <button class="tab-btn" data-tab="reminders">提醒設定</button>
         <button class="tab-btn" data-tab="backup">資料備份</button>
+        <button class="tab-btn" data-tab="appearance">外觀</button>
       </div>
       <div id="settings-content"></div>
     </div>
@@ -48,6 +50,7 @@ function renderTabContent(tab) {
     case 'babies': renderBabiesTab(); break;
     case 'reminders': renderRemindersTab(); break;
     case 'backup': renderBackupTab(); break;
+    case 'appearance': renderAppearanceTab(); break;
   }
 }
 
@@ -499,5 +502,64 @@ async function renderBackupTab() {
       if (status) status.textContent = '';
       showToast('還原失敗：' + err.message, { type: 'error' });
     }
+  });
+}
+
+// ===================== Appearance Tab =====================
+
+function renderAppearanceTab() {
+  const container = document.getElementById('settings-content');
+  const current = getTheme();
+
+  const themeList = [
+    { id: 'light-green', label: '白底綠色系', bg: '#F5F9F5', primary: '#43A047', dark: false },
+    { id: 'dark-green',  label: '黑底綠色系', bg: '#1E1E1E', primary: '#66BB6A', dark: true },
+    { id: 'light-blue',  label: '白底藍色系', bg: '#F5F8FF', primary: '#1E88E5', dark: false },
+    { id: 'dark-blue',   label: '黑底藍色系', bg: '#111827', primary: '#42A5F5', dark: true },
+  ];
+
+  container.innerHTML = `
+    <div class="card">
+      <h3 style="font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); margin-bottom: var(--space-lg);">色系主題</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-md);" id="theme-grid">
+        ${themeList.map(t => `
+          <button class="theme-card ${current === t.id ? 'selected' : ''}" data-theme-id="${t.id}"
+            style="
+              border: 3px solid ${current === t.id ? t.primary : '#ccc'};
+              border-radius: var(--radius-md);
+              padding: var(--space-md);
+              background: ${t.bg};
+              cursor: pointer;
+              display: flex;
+              flex-direction: column;
+              gap: var(--space-sm);
+              align-items: flex-start;
+              transition: border-color 0.2s;
+            ">
+            <!-- Mini preview -->
+            <div style="display:flex; gap:6px; margin-bottom:4px;">
+              <div style="width:32px; height:32px; border-radius:50%; background:${t.primary};"></div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:4px; justify-content:center;">
+                <div style="height:6px; border-radius:3px; background:${t.primary}; opacity:0.7;"></div>
+                <div style="height:6px; border-radius:3px; background:${t.dark ? '#555' : '#ccc'}; width:70%;"></div>
+              </div>
+            </div>
+            <span style="font-size:14px; font-weight:600; color:${t.dark ? '#eee' : '#333'};">
+              ${t.label}
+            </span>
+            ${current === t.id ? `<span style="font-size:12px; color:${t.primary};">✓ 目前使用</span>` : ''}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  container.querySelectorAll('.theme-card').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const themeId = btn.dataset.themeId;
+      setTheme(themeId);
+      showToast('已切換主題');
+      renderAppearanceTab(); // re-render to show selected state
+    });
   });
 }
