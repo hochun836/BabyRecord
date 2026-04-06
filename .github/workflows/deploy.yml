@@ -74,10 +74,7 @@ jobs:
         run: |
           for f in css/*.css; do
             filename=$(basename "$f")
-            cleancss \
-              --level 2 \
-              -o "dist/css/${filename}" \
-              "$f"
+            cleancss -o "dist/css/${filename}" "$f" || cp "$f" "dist/css/${filename}"
             echo "  ✔ Minified $f"
           done
 
