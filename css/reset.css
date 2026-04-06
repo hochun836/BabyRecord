@@ -16,7 +16,8 @@ body {
   font-weight: var(--font-weight-normal);
   line-height: var(--line-height);
   color: var(--text-primary);
-  background: var(--bg);
+  /* surface color fills the notch / status-bar area on iPhone with viewport-fit=cover */
+  background: var(--surface);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;

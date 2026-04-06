@@ -333,7 +333,8 @@ textarea.form-input {
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   width: 100%;
   max-width: var(--max-width);
-  max-height: 90dvh;
+  max-height: 90vh;   /* fallback: Samsung Internet <20 / browsers without dvh */
+  max-height: 90dvh;  /* modern: excludes browser address bar from height calc */
   overflow-y: auto;
   padding: var(--space-lg);
   padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px));
@@ -706,8 +707,13 @@ textarea.form-input {
 .status-card__header span { font-size: var(--font-size-sm); }
 
 .status-card__value {
-  font-size: var(--font-size-xl);
+  /* was var(--font-size-xl)=28px: on 390px screen each card is ~139px wide,
+     5 CJK chars × 28px = 140px — overflows. Reduced to 22px gives ~5px margin. */
+  font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status-card__time {

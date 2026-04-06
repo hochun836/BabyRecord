@@ -58,7 +58,7 @@ export async function renderStats() {
           <button class="btn btn-sm btn-secondary flex-1" data-range="30">30 天</button>
         </div>
       </div>
-      <div class="card" id="stats-chart-container" style="position:relative; min-height: 300px;">
+      <div class="card" id="stats-chart-container" style="position:relative; height: 300px; padding: 0; overflow: hidden;">
         <canvas id="stats-chart"></canvas>
       </div>
       <div id="stats-summary" class="mt-lg"></div>

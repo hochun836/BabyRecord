@@ -4,7 +4,9 @@
 #app {
   max-width: var(--max-width);
   margin: 0 auto;
-  min-height: 100dvh;
+  min-height: 100vh;   /* fallback: older Samsung Internet / browsers without dvh */
+  min-height: 100dvh;  /* modern: shrinks when virtual keyboard appears */
+  background: var(--bg); /* own bg, separate from body (which fills notch area) */
   padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
   position: relative;
 }
@@ -16,11 +18,13 @@
   z-index: 100;
   background: var(--surface);
   border-bottom: 1px solid var(--border-light);
+  /* push header content below the iPhone notch / Dynamic Island */
   padding: var(--space-md);
+  padding-top: calc(var(--space-md) + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  min-height: var(--header-height);
+  min-height: calc(var(--header-height) + env(safe-area-inset-top, 0px));
 }
 
 .page-header__title {
@@ -42,12 +46,15 @@
   transform: translateX(-50%);
   width: 100%;
   max-width: var(--max-width);
-  height: var(--nav-height);
+  /* Grow height to accommodate the iOS home-indicator safe area:
+     fixed 72px for icon+label, then safe area below it — never cramped */
+  height: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
   background: var(--surface);
   border-top: 1px solid var(--border-light);
   display: flex;
-  align-items: center;
+  align-items: flex-start;    /* items sit at top; safe area is empty space below */
   justify-content: space-around;
+  padding-top: var(--space-xs);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   z-index: 200;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
@@ -102,17 +109,26 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-/* --- Safe area for notch devices --- */
-@supports (padding: env(safe-area-inset-bottom)) {
-  #bottom-nav {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-}
+/* env() is supported on all target devices (iOS 11+, Chrome 69+, Samsung Internet 10+);
+   the @supports guard is no longer needed — safe area values are applied inline above. */
 
 /* --- Responsive --- */
 @media (min-width: 481px) {
   #app {
     border-left: 1px solid var(--border-light);
     border-right: 1px solid var(--border-light);
+  }
+}
+
+/* --- Tablet breakpoints (Samsung Galaxy Tab, iPad, etc.) ---
+   Increase the app column width so the UI fills more of the larger screen. */
+@media (min-width: 600px) {
+  :root {
+    --max-width: 580px;
+  }
+}
+@media (min-width: 768px) {
+  :root {
+    --max-width: 680px;
   }
 }
