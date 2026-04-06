@@ -6,6 +6,7 @@ import { getSelectedBaby } from '../components/babySelector.js';
 import { createRecord, updateRecord, getRecord, getLastRecordByType } from '../modules/records.js';
 import { showToast } from '../components/toast.js';
 import { navigate, getRouteParams } from '../router.js';
+import { openModal, closeModal, modalHeader } from '../components/modal.js';
 
 const categories = [
   { type: 'feeding',     label: '喝奶',   icon: 'feeding' },
@@ -118,7 +119,7 @@ function renderCategories(baby, editRecord) {
   });
 }
 
-async function renderForm(type, baby, editRecord) {
+async function renderForm(type, baby, editRecord, saveCallback = null) {
   const container = document.getElementById('add-form');
   if (!container) return;
 
@@ -164,9 +165,9 @@ async function renderForm(type, baby, editRecord) {
         <div class="form-group">
           <label class="form-label">類型</label>
           <div class="select-group" id="diaper-kind">
-            <button class="select-btn ${val.kind === 'wet' ? 'active' : ''}" data-value="wet">💧 尿尿</button>
-            <button class="select-btn ${val.kind === 'dirty' ? 'active' : ''}" data-value="dirty">💩 大便</button>
-            <button class="select-btn ${val.kind === 'both' ? 'active' : ''}" data-value="both">💧💩 都有</button>
+            <button class="select-btn ${val.kind === 'wet' ? 'active' : ''}" data-value="wet">尿尿</button>
+            <button class="select-btn ${val.kind === 'dirty' ? 'active' : ''}" data-value="dirty">大便</button>
+            <button class="select-btn ${val.kind === 'both' ? 'active' : ''}" data-value="both">尿+便</button>
           </div>
         </div>
       `;
@@ -243,63 +244,31 @@ async function renderForm(type, baby, editRecord) {
       break;
 
     case 'sleep': {
-      const lastSleep = isEdit ? null : await getLastRecordByType(baby.id, 'sleep');
-      const isSleeping = lastSleep && lastSleep.value.endAt === null;
-
-      if (isSleeping && !isEdit) {
-        // End sleep
-        formHtml = `
-          <div class="card" style="text-align: center; padding: var(--space-xl);">
-            <div style="font-size: var(--font-size-2xl);">💤</div>
-            <p style="font-size: var(--font-size-lg); margin: var(--space-md) 0;">寶寶正在睡覺中</p>
-            <p style="color: var(--text-secondary);">
-              開始時間：${new Date(lastSleep.value.startAt).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}
-            </p>
-            <button class="btn btn-primary btn-block btn-lg mt-lg" id="end-sleep">
-              ☀️ 寶寶醒了！
-            </button>
-          </div>
-        `;
-        setTimeout(() => {
-          document.getElementById('end-sleep')?.addEventListener('click', async () => {
-            await updateRecord(lastSleep.id, {
-              value: { ...lastSleep.value, endAt: new Date().toISOString() }
-            });
-            showToast('已記錄醒來時間');
-            navigate('/home');
-          });
-        }, 0);
-        container.innerHTML = formHtml;
-        return; // Don't render common fields
-      } else if (!isEdit) {
-        // Start sleep
-        formHtml = `
-          <div class="card" style="text-align: center; padding: var(--space-xl);">
-            <div style="font-size: var(--font-size-2xl);">🌙</div>
-            <p style="font-size: var(--font-size-lg); margin: var(--space-md) 0;">記錄寶寶開始睡覺</p>
-          </div>
-        `;
-      } else {
-        // Edit mode for sleep
-        const startTime = val.startAt ? new Date(val.startAt) : new Date();
-        const endTime = val.endAt ? new Date(val.endAt) : null;
-        formHtml = `
-          <div class="form-group">
-            <label class="form-label">開始時間</label>
-            <input type="time" class="form-input" id="sleep_start" value="${String(startTime.getHours()).padStart(2, '0')}:${String(startTime.getMinutes()).padStart(2, '0')}">
-          </div>
-          <div class="form-group">
-            <label class="form-label">結束時間</label>
-            <input type="time" class="form-input" id="sleep_end" value="${endTime ? String(endTime.getHours()).padStart(2, '0') + ':' + String(endTime.getMinutes()).padStart(2, '0') : ''}">
-          </div>
-        `;
-      }
+      const sleepDateVal = val.startAt ? val.startAt.slice(0, 10) : dateStr;
+      const startTime = val.startAt ? new Date(val.startAt) : new Date();
+      const endTime = val.endAt ? new Date(val.endAt) : null;
+      const startHM = String(startTime.getHours()).padStart(2, '0') + ':' + String(startTime.getMinutes()).padStart(2, '0');
+      const endHM = endTime ? String(endTime.getHours()).padStart(2, '0') + ':' + String(endTime.getMinutes()).padStart(2, '0') : '';
+      formHtml = `
+        <div class="form-group">
+          <label class="form-label">日期</label>
+          <input type="date" class="form-input" id="sleep_date" value="${sleepDateVal}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">開始時間</label>
+          <input type="time" class="form-input" id="sleep_start" value="${startHM}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">結束時間（選填）</label>
+          <input type="time" class="form-input" id="sleep_end" value="${endHM}">
+        </div>
+      `;
       break;
     }
   }
 
-  // Common fields: time, date, note
-  const showTimeDate = type !== 'sleep' || isEdit;
+  // Common fields: time, date, note (sleep has its own date/time inputs)
+  const showTimeDate = type !== 'sleep';
 
   container.innerHTML = `
     <div class="card mb-lg">
@@ -362,8 +331,9 @@ async function renderForm(type, baby, editRecord) {
       const noteInput = container.querySelector('#record-note');
 
       let time;
-      if (type === 'sleep' && !isEdit) {
-        time = new Date().toISOString();
+      if (type === 'sleep') {
+        // Use startAt computed by collectValue as the record timestamp
+        time = value.startAt || new Date().toISOString();
       } else if (dateInput && timeInput) {
         const [h, m] = timeInput.value.split(':').map(Number);
         const d = new Date(dateInput.value);
@@ -380,7 +350,11 @@ async function renderForm(type, baby, editRecord) {
         await createRecord({ babyId: baby.id, type, value, time, note: noteInput?.value || '' });
         showToast('已儲存記錄');
       }
-      navigate('/home');
+      if (saveCallback) {
+        saveCallback();
+      } else {
+        navigate('/home');
+      }
     } catch (err) {
       showToast('儲存失敗：' + err.message, { type: 'error' });
     }
@@ -421,22 +395,87 @@ function collectValue(type, container, isEdit) {
     case 'bath':
       return { note: '' };
     case 'sleep': {
-      if (isEdit) {
-        const startInput = document.getElementById('sleep_start');
-        const endInput = document.getElementById('sleep_end');
-        const now = new Date();
-        const [sh, sm] = (startInput?.value || '00:00').split(':').map(Number);
-        const startAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sh, sm).toISOString();
-        let endAt = null;
-        if (endInput?.value) {
-          const [eh, em] = endInput.value.split(':').map(Number);
-          endAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), eh, em).toISOString();
-        }
-        return { startAt, endAt };
+      const sleepDateInput = document.getElementById('sleep_date');
+      const startInput = document.getElementById('sleep_start');
+      const endInput = document.getElementById('sleep_end');
+      const sleepDateStr = sleepDateInput?.value || nowDateStr();
+      const [sh, sm] = (startInput?.value || '00:00').split(':').map(Number);
+      const startDate = new Date(sleepDateStr + 'T00:00:00');
+      startDate.setHours(sh, sm, 0, 0);
+      const startAt = startDate.toISOString();
+      let endAt = null;
+      if (endInput?.value) {
+        const [eh, em] = endInput.value.split(':').map(Number);
+        const endDate = new Date(sleepDateStr + 'T00:00:00');
+        endDate.setHours(eh, em, 0, 0);
+        // Handle cross-midnight sleep
+        if (endDate <= startDate) endDate.setDate(endDate.getDate() + 1);
+        endAt = endDate.toISOString();
       }
-      return { startAt: new Date().toISOString(), endAt: null };
+      return { startAt, endAt };
     }
     default:
       return {};
   }
+}
+
+/**
+ * Open the add/edit record form as a bottom-sheet modal.
+ * @param {{ type?: string, editId?: string }} opts
+ * @param {Function} [onSaved] - Called after successful save (modal will already be closed).
+ */
+export async function openAddRecordSheet(opts = {}, onSaved) {
+  const baby = await getSelectedBaby();
+  if (!baby) {
+    showToast('請先新增寶寶', { type: 'error' });
+    return;
+  }
+
+  let editRecord = null;
+  if (opts.editId) {
+    editRecord = await getRecord(opts.editId);
+  }
+
+  const initialType = editRecord ? editRecord.type : (opts.type || null);
+  const saveCallback = () => {
+    closeModal();
+    if (onSaved) onSaved();
+  };
+
+  if (!initialType) {
+    // Show category grid for selection
+    openModal(`
+      ${modalHeader('選擇記錄類型')}
+      <div class="category-grid" id="sheet-cat-grid">
+        ${categories.map(c => `
+          <button class="category-btn" data-type="${c.type}">
+            ${icon(c.icon)}
+            <span>${c.label}</span>
+          </button>
+        `).join('')}
+      </div>
+    `);
+    document.getElementById('sheet-cat-grid')?.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.category-btn');
+      if (!btn) return;
+      const selectedType = btn.dataset.type;
+      const title = categories.find(c => c.type === selectedType)?.label || '新增記錄';
+      openModal(`
+        ${modalHeader(title)}
+        <div id="add-form"></div>
+      `);
+      await renderForm(selectedType, baby, null, saveCallback);
+    });
+    return;
+  }
+
+  const title = editRecord
+    ? '編輯記錄'
+    : (categories.find(c => c.type === initialType)?.label || '新增記錄');
+
+  openModal(`
+    ${modalHeader(title)}
+    <div id="add-form"></div>
+  `);
+  await renderForm(initialType, baby, editRecord, saveCallback);
 }

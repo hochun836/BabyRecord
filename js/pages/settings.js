@@ -3,7 +3,8 @@
  */
 import { icon } from '../components/icons.js';
 import { getAllBabies, createBaby, updateBaby, deleteBaby, getSelectedBabyId, setSelectedBabyId } from '../modules/baby.js';
-import { getAllReminders, getRemindersByBaby, createReminder, updateReminder, deleteReminder, requestNotificationPermission, scheduleForegroundReminders } from '../modules/reminder.js';
+import { getAllReminders, getRemindersByBaby, createReminder, updateReminder, deleteReminder, deleteRemindersByBaby, requestNotificationPermission, scheduleForegroundReminders } from '../modules/reminder.js';
+import { deleteRecordsByBaby } from '../modules/records.js';
 import { openModal, closeModal, modalHeader, confirm as confirmDialog } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { getClientId, setClientId, exportToGDrive, importFromGDrive, restoreBackup } from '../modules/gdrive.js';
@@ -102,11 +103,16 @@ async function renderBabiesTab() {
 
   container.querySelectorAll('[data-delete-baby]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const ok = await confirmDialog('確定要刪除這位寶寶嗎？所有相關紀錄不會被刪除。', { danger: true, confirmText: '刪除' });
+      const ok = await confirmDialog('確定要刪除這位寶寶嗎？寶寶的所有紀錄與提醒將一併刪除，且無法復原。', { danger: true, confirmText: '刪除' });
       if (!ok) return;
-      await deleteBaby(btn.dataset.deleteBaby);
+      const babyId = btn.dataset.deleteBaby;
+      await Promise.all([
+        deleteBaby(babyId),
+        deleteRecordsByBaby(babyId),
+        deleteRemindersByBaby(babyId),
+      ]);
       // If deleted baby was selected, clear selection
-      if (getSelectedBabyId() === btn.dataset.deleteBaby) {
+      if (getSelectedBabyId() === babyId) {
         setSelectedBabyId(null);
       }
       showToast('已刪除');
@@ -288,7 +294,10 @@ async function renderRemindersTab() {
 }
 
 function renderReminderItem(r) {
-  const typeLabel = r.type === 'feeding' ? '🍼 餵奶' : '🌙 睡覺';
+  const _iconHtml = (name) => `<span style="display:inline-block;width:18px;height:18px;vertical-align:middle;margin-right:4px;">${icon(name)}</span>`;
+  const typeLabel = r.type === 'feeding'
+    ? `${_iconHtml('feeding')}餵奶`
+    : `${_iconHtml('sleep')}睡覺`;
   return `
     <div class="flex items-center gap-md" style="padding: var(--space-sm) 0; border-bottom: 1px solid var(--border-light);">
       <div class="flex-1">
@@ -296,7 +305,7 @@ function renderReminderItem(r) {
           ${typeLabel} — ${r.time}
         </div>
         <div style="font-size: var(--font-size-sm); color: var(--text-secondary);">
-          提前 ${r.leadMinutes} 分鐘${r.message ? ' · ' + escapeHtml(r.message) : ''}
+          ${r.date ? r.date + ' ' : '每天 '}${r.time} · 提前 ${r.leadMinutes} 分鐘${r.message ? ' · ' + escapeHtml(r.message) : ''}
         </div>
         ${r.note ? `<div style="font-size: var(--font-size-sm); color: var(--text-hint);">${escapeHtml(r.note)}</div>` : ''}
       </div>
@@ -321,9 +330,14 @@ function openReminderForm(babyId, existing = null) {
     <div class="form-group">
       <label class="form-label">類型</label>
       <div class="select-group" id="reminder-type">
-        <button class="select-btn ${(!existing || existing.type === 'feeding') ? 'active' : ''}" data-value="feeding">🍼 餵奶</button>
-        <button class="select-btn ${existing?.type === 'sleep' ? 'active' : ''}" data-value="sleep">🌙 睡覺</button>
+        <button class="select-btn ${(!existing || existing.type === 'feeding') ? 'active' : ''}" data-value="feeding">${icon('feeding')} 餵奶</button>
+        <button class="select-btn ${existing?.type === 'sleep' ? 'active' : ''}" data-value="sleep">${icon('sleep')} 睡覺</button>
       </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">日期（選填）</label>
+      <input type="date" class="form-input" id="reminder-date" value="${existing?.date || ''}">
+      <p class="form-hint">留空代表每天提醒；填入日期則僅在該日提醒</p>
     </div>
     <div class="form-group">
       <label class="form-label">時間</label>
@@ -384,6 +398,7 @@ function openReminderForm(babyId, existing = null) {
   // Save
   modal.querySelector('#save-reminder')?.addEventListener('click', async () => {
     const type = modal.querySelector('#reminder-type .select-btn.active')?.dataset.value || 'feeding';
+    const date = modal.querySelector('#reminder-date')?.value || '';
     const time = modal.querySelector('#reminder-time')?.value || '08:00';
     const leadMinutes = parseInt(modal.querySelector('#reminder-lead')?.value) || 0;
     const message = modal.querySelector('#reminder-message')?.value.trim() || '';
@@ -395,7 +410,7 @@ function openReminderForm(babyId, existing = null) {
       showToast('通知權限被拒絕，提醒可能無法正常顯示', { type: 'error' });
     }
 
-    const data = { babyId, type, time, leadMinutes, message, note };
+    const data = { babyId, type, date, time, leadMinutes, message, note };
 
     if (isEdit) {
       await updateReminder(existing.id, data);
@@ -471,7 +486,8 @@ async function renderBackupTab() {
       showToast('備份成功！');
     } catch (err) {
       if (status) status.textContent = '';
-      showToast('備份失敗：' + err.message, { type: 'error' });
+      const msg = err?.message || err?.result?.error?.message || JSON.stringify(err) || '未知錯誤';
+      showToast('備份失敗：' + msg, { type: 'error' });
     }
   });
 
@@ -500,7 +516,8 @@ async function renderBackupTab() {
       if (status) status.textContent = '還原完成！請重新整理頁面。';
     } catch (err) {
       if (status) status.textContent = '';
-      showToast('還原失敗：' + err.message, { type: 'error' });
+      const msg = err?.message || err?.result?.error?.message || JSON.stringify(err) || '未知錯誤';
+      showToast('還原失敗：' + msg, { type: 'error' });
     }
   });
 }

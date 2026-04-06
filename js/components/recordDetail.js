@@ -4,7 +4,7 @@
  */
 import { icon } from './icons.js';
 import { RECORD_TYPES } from '../modules/records.js';
-import { openModal, modalHeader } from './modal.js';
+import { openModal, closeModal, modalHeader } from './modal.js';
 import { navigate } from '../router.js';
 
 function escapeHtml(str) {
@@ -16,13 +16,15 @@ function escapeHtml(str) {
 function formatDateTime(isoStr) {
   if (!isoStr) return '—';
   const d = new Date(isoStr);
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const dateStr = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+  const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return `${dateStr} ${timeStr}`;
 }
 
 function formatHM(isoStr) {
   if (!isoStr) return '—';
   const d = new Date(isoStr);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 function formatDuration(startIso, endIso) {
@@ -81,7 +83,7 @@ function buildDetailRows(record) {
         const dur = formatDuration(v.startAt, v.endAt);
         if (dur) rows.push(['持續', dur]);
       } else {
-        rows.push(['狀態', '💤 睡眠進行中']);
+        rows.push(['狀態', '睡眠進行中']);
       }
       break;
     }
@@ -147,7 +149,14 @@ export function showRecordDetail(record, opts = {}) {
 
   if (showEdit) {
     document.getElementById('detail-edit-btn')?.addEventListener('click', () => {
-      navigate('/add', { editId: record.id });
+      closeModal();
+      if (opts.onEdit) {
+        opts.onEdit(record);
+      } else {
+        document.getElementById('app')?.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        navigate('/add', { editId: record.id });
+      }
     });
   }
 }

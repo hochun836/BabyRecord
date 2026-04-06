@@ -27,6 +27,9 @@ export function openModal(html, options = {}) {
 
   // Close when clicking overlay (outside modal)
   o.addEventListener('click', handleOverlayClick);
+
+  // Close button inside modal header — call closeModal() so onClose fires properly
+  m.querySelector('.modal__close')?.addEventListener('click', closeModal);
 }
 
 /**
@@ -58,7 +61,7 @@ export function modalHeader(title) {
   return `
     <div class="modal__header">
       <h2 class="modal__title">${title}</h2>
-      <button class="modal__close" onclick="document.getElementById('modal-overlay').classList.remove('open')">
+      <button class="modal__close" type="button" aria-label="關閉">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
@@ -82,8 +85,11 @@ export function confirm(message, options = {}) {
         <button class="btn ${danger ? 'btn-danger' : 'btn-primary'} btn-block" id="modal-confirm">${confirmText}</button>
       </div>
     `;
+
+    // confirmed flag prevents onClose from resolving false when user clicks confirm
+    let confirmed = false;
     openModal(html, {
-      onClose: () => resolve(false),
+      onClose: () => { if (!confirmed) resolve(false); },
     });
 
     const m = modalEl();
@@ -92,6 +98,7 @@ export function confirm(message, options = {}) {
       resolve(false);
     });
     m.querySelector('#modal-confirm')?.addEventListener('click', () => {
+      confirmed = true;
       closeModal();
       resolve(true);
     });

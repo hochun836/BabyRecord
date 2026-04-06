@@ -39,6 +39,7 @@ export async function createReminder(data) {
     babyId: data.babyId,
     type: data.type,           // 'feeding' | 'sleep'
     time: data.time,           // HH:MM
+    date: data.date || '',     // YYYY-MM-DD (optional; empty = every day)
     leadMinutes: data.leadMinutes || 0,
     message: data.message || '',
     note: data.note || '',
@@ -65,6 +66,15 @@ export async function updateReminder(id, updates) {
  */
 export async function deleteReminder(id) {
   return deleteById(STORE, id);
+}
+
+/**
+ * Delete all reminders for a baby.
+ * @param {string} babyId
+ */
+export async function deleteRemindersByBaby(babyId) {
+  const reminders = await getRemindersByBaby(babyId);
+  await Promise.all(reminders.map(r => deleteById(STORE, r.id)));
 }
 
 /**
@@ -105,8 +115,15 @@ function showNotification(title, body) {
  */
 function getReminderTimestamps(reminder) {
   const [h, m] = reminder.time.split(':').map(Number);
-  const now = new Date();
-  const eventAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0).getTime();
+  let year, month, day;
+  if (reminder.date) {
+    const parts = reminder.date.split('-').map(Number);
+    year = parts[0]; month = parts[1] - 1; day = parts[2];
+  } else {
+    const now = new Date();
+    year = now.getFullYear(); month = now.getMonth(); day = now.getDate();
+  }
+  const eventAt = new Date(year, month, day, h, m, 0).getTime();
   const notifyAt = eventAt - (reminder.leadMinutes || 0) * 60 * 1000;
   return { notifyAt, eventAt };
 }

@@ -3,10 +3,11 @@
  */
 import { icon } from '../components/icons.js';
 import { renderBabySelector, getSelectedBaby, onBabyChange } from '../components/babySelector.js';
-import { getRecordsByDate, getRecordsByDateRange, getLastRecordByType, RECORD_TYPES } from '../modules/records.js';
+import { getRecordsByDate, getLastRecordByType, RECORD_TYPES } from '../modules/records.js';
 import { getNextReminder } from '../modules/reminder.js';
 import { navigate } from '../router.js';
 import { showRecordDetail } from '../components/recordDetail.js';
+import { openAddRecordSheet } from './add.js';
 
 let _recordsMap = {};
 
@@ -18,7 +19,7 @@ function toDateStr(d) {
 
 function formatTime(isoStr) {
   const d = new Date(isoStr);
-  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 function timeAgo(isoStr) {
@@ -160,7 +161,7 @@ async function renderStatusCards(baby) {
     cards.push(`
       <div class="status-card">
         <div class="status-card__header">${icon('sleep')}<span>睡眠狀態</span></div>
-        <div class="status-card__value">${isAsleep ? '💤 睡覺中' : '☀️ 已醒來'}</div>
+        <div class="status-card__value">${isAsleep ? '睡覺中' : '已醒來'}</div>
         <div class="status-card__time">${timeAgo(lastSleep.time)}</div>
       </div>
     `);
@@ -168,12 +169,14 @@ async function renderStatusCards(baby) {
 
   // Food card
   if (lastFood) {
-    const foodName = lastFood.value.name || '副食品';
+    const v = lastFood.value;
+    const foodName = v.name || v.amount || '（未填名稱）';
+    const foodSub = v.name && v.amount ? escapeHtml(v.amount) : '';
     cards.push(`
       <div class="status-card">
         <div class="status-card__header">${icon('food')}<span>上次副食品</span></div>
         <div class="status-card__value" style="font-size: var(--font-size-lg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(foodName)}</div>
-        <div class="status-card__time">${timeAgo(lastFood.time)}</div>
+        <div class="status-card__time">${foodSub ? escapeHtml(foodSub) + '・' : ''}${timeAgo(lastFood.time)}</div>
       </div>
     `);
   }
@@ -218,7 +221,7 @@ function renderQuickAdd() {
   container.addEventListener('click', (e) => {
     const btn = e.target.closest('.category-btn');
     if (!btn) return;
-    navigate('/add', { type: btn.dataset.type });
+    openAddRecordSheet({ type: btn.dataset.type }, () => renderHomeContent());
   });
 }
 
@@ -235,7 +238,12 @@ async function renderRecentTimeline(baby) {
   if (today === yesterday) {
     records = await getRecordsByDate(baby.id, today);
   } else {
-    records = await getRecordsByDateRange(baby.id, yesterday, today);
+    // Cross-midnight: query both dates separately (avoids IDB compound key range quirks)
+    const [recYesterday, recToday] = await Promise.all([
+      getRecordsByDate(baby.id, yesterday),
+      getRecordsByDate(baby.id, today),
+    ]);
+    records = [...recYesterday, ...recToday];
   }
 
   const recent = records.filter(r => new Date(r.time) >= cutoff);
@@ -253,14 +261,17 @@ async function renderRecentTimeline(baby) {
   _recordsMap = {};
   recent.forEach(r => { _recordsMap[r.id] = r; });
 
-  // Group by HH:MM (ascending)
+  // Sort by time descending first, then group — preserves insertion order in object
+  // This correctly handles cross-midnight (e.g. "00:30" today is newer than "23:30" yesterday)
+  const sortedRecent = [...recent].sort((a, b) => new Date(b.time) - new Date(a.time));
   const groups = {};
-  for (const r of recent) {
+  for (const r of sortedRecent) {
     const key = formatTime(r.time);
     if (!groups[key]) groups[key] = [];
     groups[key].push(r);
   }
-  const sortedKeys = Object.keys(groups).sort();
+  // Object.keys preserves insertion order for non-integer string keys (ES2015+)
+  const sortedKeys = Object.keys(groups);
 
   container.innerHTML = `
     <div class="timeline">
@@ -280,7 +291,9 @@ async function renderRecentTimeline(baby) {
   container.querySelectorAll('.timeline-item[data-id]').forEach(item => {
     item.addEventListener('click', () => {
       const r = _recordsMap[item.dataset.id];
-      if (r) showRecordDetail(r);
+      if (r) showRecordDetail(r, {
+        onEdit: (record) => openAddRecordSheet({ editId: record.id }, () => renderHomeContent()),
+      });
     });
   });
 }

@@ -140,3 +140,12 @@ export async function getLastRecordByType(babyId, type) {
     .sort((a, b) => new Date(b.time) - new Date(a.time));
   return filtered[0] || null;
 }
+
+/**
+ * Delete all records for a baby.
+ * @param {string} babyId
+ */
+export async function deleteRecordsByBaby(babyId) {
+  const records = await getRecordsByBaby(babyId);
+  await Promise.all(records.map(r => deleteById(STORE, r.id)));
+}

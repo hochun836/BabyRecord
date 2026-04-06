@@ -8,6 +8,7 @@ import { confirm as confirmDialog } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { navigate } from '../router.js';
 import { showRecordDetail } from '../components/recordDetail.js';
+import { openAddRecordSheet } from './add.js';
 
 let _historyRecordsMap = {};
 
@@ -21,7 +22,7 @@ function toDateStr(d) {
 
 function formatTime(isoStr) {
   const d = new Date(isoStr);
-  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 function escapeHtml(str) {
@@ -161,6 +162,22 @@ async function renderDayTimeline() {
   _historyRecordsMap = {};
   records.forEach(r => { _historyRecordsMap[r.id] = r; });
 
+  // Count by type (only types that have records)
+  const typeCounts = {};
+  records.forEach(r => { typeCounts[r.type] = (typeCounts[r.type] || 0) + 1; });
+  const summaryHtml = Object.entries(typeCounts)
+    .map(([type, count]) => {
+      const label = RECORD_TYPES[type] || type;
+      return `<span style="
+        display:inline-flex; align-items:center; gap:4px;
+        background:var(--surface-card); border:1px solid var(--border-light);
+        border-radius:999px; padding:4px 12px;
+        font-size:var(--font-size-sm); color:var(--text-secondary);">
+        <span style="display:flex;width:16px;height:16px;">${icon(type)}</span>
+        ${label} <strong style="color:var(--primary);">${count}</strong>
+      </span>`;
+    }).join('');
+
   // Group by HH:MM
   const groups = {};
   for (const r of records) {
@@ -169,9 +186,12 @@ async function renderDayTimeline() {
     groups[key].push(r);
   }
 
-  const sortedKeys = Object.keys(groups).sort();
+  const sortedKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a)); // 降冪：最新優先
 
   container.innerHTML = `
+    <div style="display:flex; flex-wrap:wrap; gap:var(--space-xs); margin-bottom:var(--space-md);">
+      ${summaryHtml}
+    </div>
     <div class="timeline">
       ${sortedKeys.map(time => `
         <div class="timeline-group">
@@ -188,7 +208,7 @@ async function renderDayTimeline() {
   // Edit / Delete handlers
   container.querySelectorAll('[data-action="edit"]').forEach(btn => {
     btn.addEventListener('click', () => {
-      navigate('/add', { editId: btn.dataset.id });
+      openAddRecordSheet({ editId: btn.dataset.id }, () => renderDayTimeline());
     });
   });
 
@@ -207,7 +227,9 @@ async function renderDayTimeline() {
     item.addEventListener('click', (e) => {
       if (e.target.closest('[data-action]')) return; // ignore edit/delete tap
       const r = _historyRecordsMap[item.dataset.id];
-      if (r) showRecordDetail(r);
+      if (r) showRecordDetail(r, {
+        onEdit: (record) => openAddRecordSheet({ editId: record.id }, () => renderDayTimeline()),
+      });
     });
   });
 }

@@ -68,3 +68,17 @@ export function initRouter() {
   window.addEventListener('hashchange', handleRoute);
   handleRoute();
 }
+
+/**
+ * Navigate to a route, re-rendering even if already on that route.
+ * @param {string} path - e.g. '/add'
+ */
+export function rerouteToPath(path) {
+  sessionStorage.removeItem('__routeParams');
+  const currentHash = window.location.hash.slice(1) || '/home';
+  if (currentHash === path) {
+    handleRoute();
+  } else {
+    window.location.hash = '#' + path;
+  }
+}

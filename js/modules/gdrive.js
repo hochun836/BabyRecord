@@ -86,9 +86,11 @@ function requestToken() {
     }
     tokenClient.callback = (resp) => {
       if (resp.error) {
-        reject(new Error(resp.error));
+        reject(new Error(resp.error_description || resp.error));
         return;
       }
+      // Required: set the token on gapi.client so all Drive API calls are authenticated
+      window.gapi.client.setToken(resp);
       resolve(resp.access_token);
     };
     tokenClient.error_callback = (err) => {
